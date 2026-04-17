@@ -24,10 +24,11 @@
   - git add .
   - git commit -m "Initial commit: donation-tracker"
   - git branch -M main
-  - git remote add origin https://github.ibm.com/ekzoss/donation-tracker.git] 
+  - git remote add origin https://github.ibm.com/ekzoss/donation-tracker.git
   - git push -u origin main
-- used Vercel tied to the github, which knew it was a vite/react app, and could build/deploy on any updates to the github repo
-- setup cname in dns to redirect to vercel app domain name
+- vercel.com: New->Project, Import the project from my git repo which vercel is already linked.
+  - Note: vercel has option you can set up env var values in there for secrets so they're not in public git repo.. for these projects I don't care
+- zoneedit.com - setup cname in dns to redirect to vercel app domain name
 
 ## App Generation
 - Google gemini created "single file react app" which creates the src/App.jsx to use
@@ -39,6 +40,6 @@
 - add email.js config to App.jsx (new template id, reuse gmail service id)
 - firebase config: add a database
 - firebase config: allow anon access, and modify rules to allow that
-- firebase config: allow anon access, but only from vercel website: HOW?
+- firebase config: allow anon access, but only from vercel website: HOW?  Not sure I actually did this...
 - Development loop was to edit local version in vscode (while npm run dev was going, automatically updating localhost copy as I saved changes), then commit and push to github to publish to prod.. a minute later vercel would pick up changes, rebuild it with vite and publish it.
 

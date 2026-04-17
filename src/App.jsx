@@ -100,6 +100,7 @@ export default function App() {
   const [editingDonation, setEditingDonation] = useState(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [teamToDelete, setTeamToDelete] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -136,6 +137,7 @@ export default function App() {
       } else {
         setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), DEFAULT_SETTINGS);
       }
+      setIsInitializing(false);
     });
 
     return () => { unsubDonations(); unsubTeams(); unsubSettings(); };
@@ -181,9 +183,10 @@ export default function App() {
 
       setSuccess(true);
       
-      const targetUrl = settings.redirectUrl || DEFAULT_SETTINGS.redirectUrl;
+      const baseUrl = settings.redirectUrl || DEFAULT_SETTINGS.redirectUrl;
+      const finalRedirectUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}x_amount=${amountValue}`;
       setTimeout(() => { 
-        window.location.assign(targetUrl);
+        window.location.assign(finalRedirectUrl);
       }, 2000);
     } catch (err) { 
       setLoading(false); 
@@ -246,6 +249,14 @@ export default function App() {
     return stats;
   }, [donations, teams]);
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex justify-center items-center">
+        <div className="w-12 h-12 border-4 border-white/20 border-t-red-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   if (view === 'print') {
     return (
       <PrintView 
@@ -266,7 +277,7 @@ export default function App() {
     : {};
 
   return (
-    <div className="min-h-screen bg-slate-200 font-sans text-slate-900 transition-colors duration-700 flex justify-center items-center p-0 sm:p-4">
+    <div className="min-h-screen bg-slate-900 font-sans text-slate-100 transition-colors duration-700 flex justify-center items-center p-0 sm:p-4">
       {/* Container restricted to phone-like dimensions */}
       <div className="w-full max-w-lg sm:h-[900px] relative">
         <div 
@@ -299,17 +310,17 @@ export default function App() {
                   <div className="max-w-sm mx-auto p-8 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-xl animate-in fade-in zoom-in-95 duration-300 my-auto w-full">
                     <div className="flex flex-col items-center mb-6">
                       <div className="w-12 h-12 bg-red-600/90 text-white rounded-2xl flex items-center justify-center mb-4 shadow-sm"><Lock className="w-6 h-6" /></div>
-                      <h2 className="text-xl font-bold uppercase tracking-tight text-center text-slate-900">Coach Portal</h2>
+                      <h2 className="text-xl font-bold uppercase tracking-tight text-center text-white">Coach Portal</h2>
                     </div>
                     <form onSubmit={handleCoachLogin} className="space-y-4">
-                      <input autoFocus type="password" placeholder="Password" value={coachPasswordInput} onChange={(e) => setCoachPasswordInput(e.target.value)} className="w-full border-2 border-white/30 rounded-xl px-4 py-3 font-bold focus:outline-none bg-white/50 focus:border-red-500 transition-colors text-center text-slate-900 shadow-sm placeholder-slate-500" />
+                      <input autoFocus type="password" placeholder="Password" value={coachPasswordInput} onChange={(e) => setCoachPasswordInput(e.target.value)} className="w-full border-2 border-white/30 rounded-xl px-4 py-3 font-bold focus:outline-none bg-white/20 focus:border-red-500 transition-colors text-center text-white shadow-sm placeholder-slate-300" />
                       {errorMsg && <p className="text-red-600 text-xs text-center font-bold">{errorMsg}</p>}
                       <button className="w-full py-3 bg-slate-900/90 text-white rounded-xl font-bold hover:bg-black transition-all text-sm uppercase tracking-widest shadow-lg">Login</button>
-                      <button type="button" onClick={() => setView('donor')} className="w-full py-2 text-slate-700 text-xs font-black hover:text-slate-900 uppercase tracking-widest">Cancel</button>
+                      <button type="button" onClick={() => setView('donor')} className="w-full py-2 text-slate-300 text-xs font-black hover:text-white uppercase tracking-widest">Cancel</button>
                     </form>
                   </div>
                 ) : (
-                  <div className="bg-white/5 backdrop-blur-md p-6 sm:p-8 rounded-[2.5rem] border border-white/20 shadow-2xl flex flex-col h-full space-y-6 overflow-y-auto scrollbar-hide">
+                  <div className="bg-white/5 backdrop-blur-md p-6 sm:p-8 rounded-[2.5rem] border border-white/20 shadow-2xl flex flex-col my-auto space-y-6 overflow-y-auto scrollbar-hide max-h-full">
                     <div className="space-y-4">
                       {teams.map(team => (
                         <TeamRow 
@@ -328,7 +339,7 @@ export default function App() {
                       {!isAddingTeam ? (
                         <button 
                           onClick={() => setIsAddingTeam(true)} 
-                          className="w-full py-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-slate-900 border-2 border-white/30 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-md active:scale-[0.98]"
+                          className="w-full py-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-2 border-white/30 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-md active:scale-[0.98]"
                         >
                           <Plus className="w-5 h-5 text-red-600" /> 
                           Add New Team
@@ -343,7 +354,7 @@ export default function App() {
                               value={newTeamName} 
                               onChange={(e) => setNewTeamName(e.target.value)} 
                               onBlur={handleAddTeamBlur}
-                              className="flex-1 bg-white/50 border border-white/30 rounded-xl px-4 py-2 font-bold text-sm focus:outline-none focus:border-red-500 text-slate-900 shadow-inner" 
+                              className="flex-1 bg-white/20 border border-white/30 rounded-xl px-4 py-2 font-bold text-sm focus:outline-none focus:border-red-500 text-white placeholder-slate-300 shadow-inner" 
                             />
                             <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-xl font-black text-sm uppercase transition-colors hover:bg-red-700">Create</button>
                           </div>
@@ -352,7 +363,7 @@ export default function App() {
 
                       <button 
                         onClick={() => setView('print')} 
-                        className="w-full py-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-slate-900 border-2 border-white/30 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-md active:scale-95"
+                        className="w-full py-4 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-2 border-white/30 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-md active:scale-95"
                       >
                         <Printer className="w-5 h-5 text-red-600" /> 
                         Generate Report
@@ -364,12 +375,15 @@ export default function App() {
                       onAutoSave={(s) => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), s)} 
                     />
 
-                    <button 
-                      onClick={() => { setIsCoachAuthenticated(false); setView('donor'); }} 
-                      className="w-full py-4 bg-white/20 backdrop-blur-sm hover:bg-red-600/20 text-slate-700 hover:text-red-700 border-2 border-white/30 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3"
-                    >
-                      <LogOut className="w-5 h-5" /> Return
-                    </button>
+                    <div className="flex justify-center pt-2">
+                      <button 
+                        onClick={() => { setIsCoachAuthenticated(false); setView('donor'); }} 
+                        className="p-4 bg-white/10 backdrop-blur-sm hover:bg-red-600/50 text-slate-200 hover:text-white border-2 border-white/30 rounded-full transition-all flex items-center justify-center shadow-md active:scale-95"
+                        aria-label="Return to Donor View"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -411,20 +425,21 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
     onSubmit(team, amount);
   };
 
-  const targetUrl = settings.redirectUrl || DEFAULT_SETTINGS.redirectUrl;
+  const baseUrl = settings.redirectUrl || DEFAULT_SETTINGS.redirectUrl;
+  const finalRedirectUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}x_amount=${amount}`;
 
   return (
     <div className="bg-white/5 backdrop-blur-md rounded-[3rem] border border-white/20 shadow-2xl p-8 sm:p-10 flex flex-col">
       <div className="text-center mb-8 pt-4">
         {!settings.imageUrl && (
-           <div className="w-20 h-20 bg-red-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-200 overflow-hidden border-2 border-white/50">
+           <div className="w-20 h-20 bg-red-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-900/50 overflow-hidden border-2 border-white/50">
             <HeartHandshake className="w-10 h-10" />
           </div>
         )}
-        <h1 className="text-3xl font-black tracking-tighter uppercase mb-3 leading-tight text-slate-900 drop-shadow-sm">
-          {settings.heading || "YMCA FUNDRAISER"}
+        <h1 className="text-3xl font-black tracking-tighter mb-3 leading-tight text-white drop-shadow-md">
+          {settings.heading || "YMCA Fundraiser"}
         </h1>
-        <p className="font-black text-xs px-4 text-slate-700 uppercase tracking-widest leading-relaxed opacity-70">
+        <p className="font-black text-xs px-4 text-slate-200 tracking-widest leading-relaxed opacity-90 drop-shadow-sm whitespace-pre-wrap">
           {settings.description || "Choose a team and pledge your support."}
         </p>
       </div>
@@ -435,20 +450,20 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
             <div className="w-16 h-16 bg-green-500/20 backdrop-blur-sm text-green-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8" />
             </div>
-            <h2 className="text-xl font-black mb-1 uppercase tracking-tight text-slate-900">Pledge Recorded!</h2>
-            <p className="text-slate-700 text-xs mb-6 font-bold leading-relaxed">
+            <h2 className="text-xl font-black mb-1 uppercase tracking-tight text-white">Pledge Recorded!</h2>
+            <p className="text-slate-200 text-xs mb-6 font-bold leading-relaxed">
               Redirecting you to complete your donation...
             </p>
             <div className="space-y-4">
               <a 
-                href={targetUrl}
-                className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95"
+                href={finalRedirectUrl}
+                className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-red-900/50 hover:bg-red-700 transition-all active:scale-95"
               >
-                Complete Payment <ExternalLink className="w-5 h-5" />
+                Click here if not redirected.<ExternalLink className="w-5 h-5" />
               </a>
               <button 
                 onClick={onReset}
-                className="text-[10px] font-black uppercase text-slate-700 tracking-widest hover:text-slate-900 transition-colors"
+                className="text-[10px] font-black uppercase text-slate-300 tracking-widest hover:text-white transition-colors"
               >
                 New Pledge
               </button>
@@ -457,31 +472,31 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2 text-left">
-              <label className="block text-[10px] font-black text-slate-800 uppercase tracking-widest ml-1 italic">Select Your Team</label>
+              <label className="block text-[10px] font-black text-slate-200 uppercase tracking-widest ml-1 italic">Select Your Team</label>
               <div className="relative">
                 <select 
                   value={team} 
                   onChange={(e) => { setTeam(e.target.value); setValidationError(''); }} 
-                  className="w-full bg-white/20 border-2 border-white/30 rounded-2xl px-5 py-4 appearance-none focus:border-red-500 font-bold outline-none cursor-pointer transition-colors text-slate-900 shadow-sm"
+                  className="w-full bg-white/20 border-2 border-white/30 rounded-2xl px-5 py-4 appearance-none focus:border-red-500 font-bold outline-none cursor-pointer transition-colors text-white shadow-sm"
                 >
-                  <option value="">Which team to credit?</option>
-                  {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                  <option value="">Select Team</option>
+                  {teams.map(t => <option key={t.id} value={t.name} className="text-slate-900">{t.name}</option>)}
                 </select>
-                <ChevronDown className="absolute right-5 top-5 w-5 h-5 text-slate-500 pointer-events-none" />
+                <ChevronDown className="absolute right-5 top-5 w-5 h-5 text-slate-300 pointer-events-none" />
               </div>
             </div>
             
             <div className="space-y-2 text-left">
-              <label className="block text-[10px] font-black text-slate-800 uppercase tracking-widest ml-1 italic">Pledge Amount</label>
+              <label className="block text-[10px] font-black text-slate-200 uppercase tracking-widest ml-1 italic">Pledge Amount</label>
               <div className="relative">
-                <span className="absolute left-6 top-4 font-black text-slate-600 text-2xl transition-colors">$</span>
+                <span className="absolute left-6 top-4 font-black text-slate-300 text-2xl transition-colors">$</span>
                 <input 
                   type="number" 
                   min="1" 
                   placeholder="0.00" 
                   value={amount} 
                   onChange={(e) => { setAmount(e.target.value); setValidationError(''); }} 
-                  className="w-full bg-white/20 border-2 border-white/30 rounded-2xl pl-12 pr-6 py-4 font-black text-2xl focus:border-red-500 outline-none transition-colors text-slate-900 shadow-sm" 
+                  className="w-full bg-white/20 border-2 border-white/30 rounded-2xl pl-12 pr-6 py-4 font-black text-2xl focus:border-red-500 outline-none transition-colors text-white placeholder-slate-300 shadow-sm" 
                 />
               </div>
             </div>
@@ -495,7 +510,7 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
 
             <button 
               disabled={loading} 
-              className={`w-full py-6 rounded-3xl font-black text-xl flex items-center justify-center gap-3 transition-all ${loading ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 active:scale-95'}`}
+              className={`w-full py-6 rounded-3xl font-black text-xl flex items-center justify-center gap-3 transition-all ${loading ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-900/50 active:scale-95'}`}
             >
               {loading ? (
                 <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
@@ -510,7 +525,7 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
       <div className="mt-6 flex justify-center pb-2">
         <button 
           onClick={onCoachClick}
-          className="p-3 text-slate-800/20 hover:text-slate-900 transition-colors"
+          className="p-3 text-white/40 hover:text-white transition-colors"
           aria-label="Coach Login"
         >
           <Lock className="w-4 h-4" />
@@ -527,17 +542,16 @@ function TeamRow({ team, stats, onEditDonation, onEditTeam, onDeleteDonation, on
       <div className="flex items-stretch">
         <button onClick={() => setExpanded(!expanded)} className="flex-1 p-5 sm:p-6 flex items-center justify-between hover:bg-white/20 text-left transition-colors">
           <div className="flex items-center gap-4 sm:gap-5">
-            <div className="w-10 h-10 bg-red-600/90 text-white rounded-xl flex items-center justify-center font-black text-sm shadow-md border border-white/20">{stats.count}</div>
-            <h3 className="font-bold text-slate-900 leading-tight">{team.name}</h3>
+            <h3 className="font-bold text-white text-lg leading-tight">{team.name}</h3>
           </div>
           <div className="flex items-center gap-4 sm:gap-6">
-            <p className="text-lg sm:text-xl font-black text-slate-900">${stats.total.toLocaleString()}</p>
-            <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${expanded ? 'rotate-180 text-red-600' : ''}`} />
+            <p className="text-lg sm:text-xl font-black text-white">${stats.total.toLocaleString()}</p>
+            <ChevronDown className={`w-5 h-5 text-slate-300 transition-transform ${expanded ? 'rotate-180 text-red-400' : ''}`} />
           </div>
         </button>
         <div className="flex items-stretch border-l border-white/20 bg-white/10">
-          <button onClick={(e) => { e.stopPropagation(); onEditTeam(); }} className="px-4 text-slate-600 hover:text-slate-900 sm:opacity-0 sm:group-hover:opacity-100 transition-all border-r border-white/20"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); onDeleteTeam(); }} className="px-4 text-slate-600 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onEditTeam(); }} className="px-4 text-slate-300 hover:text-white sm:opacity-0 sm:group-hover:opacity-100 transition-all border-r border-white/20"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDeleteTeam(); }} className="px-4 text-slate-300 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
       {expanded && (
@@ -545,18 +559,18 @@ function TeamRow({ team, stats, onEditDonation, onEditTeam, onDeleteDonation, on
           {stats.items.length > 0 ? stats.items.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).map(item => (
             <div key={item.id} className="bg-white/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-white/30 flex items-center justify-between group/item shadow-sm hover:shadow-md transition-all">
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{new Date(item.timestamp).toLocaleDateString()}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">{new Date(item.timestamp).toLocaleDateString()}</span>
                 <span className="text-[9px] font-medium text-slate-400">{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-black text-red-600 text-lg tracking-tight">${item.amount.toLocaleString()}</span>
+                <span className="font-black text-red-400 text-lg tracking-tight">${item.amount.toLocaleString()}</span>
                 <div className="flex gap-1">
-                  <button onClick={() => onEditDonation(item)} className="p-1.5 hover:bg-white/50 rounded-lg text-slate-500 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => onDeleteDonation(item.id)} className="p-1.5 hover:bg-red-500/20 text-red-600 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => onEditDonation(item)} className="p-1.5 hover:bg-white/20 rounded-lg text-slate-300 hover:text-white transition-colors"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => onDeleteDonation(item.id)} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>
-          )) : <p className="text-center py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest italic">No donations yet</p>}
+          )) : <p className="text-center py-4 text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">No donations yet</p>}
         </div>
       )}
     </div>
@@ -620,42 +634,42 @@ function SettingsPanel({ currentSettings, onAutoSave }) {
     <div className="mt-6 mb-2">
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="w-full py-4 bg-white/5 backdrop-blur-md rounded-[2rem] border-2 border-white/20 text-slate-900 font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] hover:bg-white/10"
+        className="w-full py-4 bg-white/5 backdrop-blur-md rounded-[2rem] border-2 border-white/20 text-white font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] hover:bg-white/10"
       >
         <Settings2 className="w-5 h-5 text-red-600" /> 
         Configuration
         <div className="flex items-center gap-2">
-          {saveStatus !== 'idle' && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${saveStatus === 'saving' ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-green-100 text-green-600'}`}>{saveStatus === 'saving' ? 'Saving...' : 'Saved'}</span>}
+          {saveStatus !== 'idle' && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${saveStatus === 'saving' ? 'bg-amber-500/20 text-amber-300 animate-pulse border border-amber-500/30' : 'bg-green-500/20 text-green-300 border border-green-500/30'}`}>{saveStatus === 'saving' ? 'Saving...' : 'Saved'}</span>}
           {isOpen ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
         </div>
       </button>
       {isOpen && (
-        <div className="bg-white/50 backdrop-blur-xl rounded-[2rem] border-2 border-white/30 shadow-2xl p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 mt-4 overflow-hidden text-slate-900">
+        <div className="bg-white/10 backdrop-blur-xl rounded-[2rem] border-2 border-white/20 shadow-2xl p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 mt-4 overflow-hidden text-white">
           <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase text-red-600 tracking-widest border-b border-red-100 pb-2 text-left">Branding & Links</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h3 className="text-xs font-black uppercase text-red-400 tracking-widest border-b border-white/20 pb-2 text-left">Branding & Links</h3>
+            <div className="grid grid-cols-1 gap-6">
               <Input label="Main Heading" value={form.heading} onChange={v => setForm({...form, heading: v})} />
               <div className="space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest ml-1 italic">Background Image</label>
+                <label className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1 italic">Background Image</label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/50 border-2 border-dashed border-slate-300 rounded-xl overflow-hidden flex items-center justify-center text-slate-400 shadow-inner">{form.imageUrl ? <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}</div>
+                  <div className="w-16 h-16 bg-white/10 border-2 border-dashed border-white/30 rounded-xl overflow-hidden flex items-center justify-center text-slate-300 shadow-inner">{form.imageUrl ? <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}</div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all flex items-center gap-2 shadow-md"><Upload className="w-3 h-3" /> Upload</button>
+                    <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 bg-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-white/30 transition-all flex items-center gap-2 shadow-md border border-white/20"><Upload className="w-3 h-3" /> Upload</button>
                     {form.imageUrl && <button onClick={() => setForm(prev => ({ ...prev, imageUrl: "" }))} className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline text-left ml-1">Remove</button>}
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                 </div>
               </div>
-              <div className="md:col-span-2 space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest ml-1 italic block">Description</label>
-                <textarea rows="2" value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full border-2 border-white/50 p-3 rounded-xl text-sm font-bold bg-white/50 focus:outline-none focus:border-red-500 resize-none transition-colors shadow-inner" />
+              <div className="space-y-2 text-left">
+                <label className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1 italic block">Description</label>
+                <textarea rows="4" value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full border-2 border-white/30 p-3 rounded-xl text-sm font-bold bg-white/10 focus:outline-none focus:border-red-500 text-white resize-none transition-colors shadow-inner placeholder-slate-300" />
               </div>
               <Input label="Redirect URL" value={form.redirectUrl} onChange={v => setForm({...form, redirectUrl: v})} />
               <Input label="Coach Password" value={form.coachPassword} onChange={v => setForm({...form, coachPassword: v})} />
             </div>
           </div>
           <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase text-red-600 tracking-widest border-b border-red-100 pb-2 flex items-center gap-2 text-left"><Mail className="w-3 h-3" /> Notifications (EmailJS)</h3>
+            <h3 className="text-xs font-black uppercase text-red-400 tracking-widest border-b border-white/20 pb-2 flex items-center gap-2 text-left"><Mail className="w-3 h-3" /> Notifications (EmailJS)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Email Address" placeholder="who gets the alert?" value={form.notificationEmail} onChange={v => setForm({...form, notificationEmail: v})} />
               <Input label="Service ID" value={form.emailjsServiceId} onChange={v => setForm({...form, emailjsServiceId: v})} />
@@ -663,7 +677,7 @@ function SettingsPanel({ currentSettings, onAutoSave }) {
               <Input label="Public Key" value={form.emailjsPublicKey} onChange={v => setForm({...form, emailjsPublicKey: v})} />
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest mt-4 border-t border-slate-100 pt-4">Auto-sync active</p>
+          <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest mt-4 border-t border-white/20 pt-4">Auto-sync active</p>
         </div>
       )}
     </div>
@@ -673,8 +687,8 @@ function SettingsPanel({ currentSettings, onAutoSave }) {
 function Input({ label, value, onChange, placeholder = "" }) {
   return (
     <div className="space-y-2 text-left">
-      <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest ml-1 italic">{label}</label>
-      <input type="text" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} className="w-full border-2 border-white/50 p-3 rounded-xl text-sm font-bold bg-white/50 focus:outline-none focus:border-red-500 transition-colors shadow-inner text-slate-900" />
+      <label className="text-[10px] font-black uppercase text-slate-300 tracking-widest ml-1 italic">{label}</label>
+      <input type="text" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} className="w-full border-2 border-white/30 p-3 rounded-xl text-sm font-bold bg-white/10 focus:outline-none focus:border-red-500 transition-colors shadow-inner text-white placeholder-slate-400" />
     </div>
   );
 }
