@@ -167,11 +167,14 @@ export default function App() {
     }
   };
 
-  const handleDonorSubmit = async (teamName, amountValue) => {
+  const handleDonorSubmit = async (teamId, amountValue) => {
     setLoading(true);
     try {
+      const teamObj = teams.find(t => t.id === teamId);
+      const teamName = teamObj ? teamObj.name : "Unknown Team";
+
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'donations'), {
-        team: teamName,
+        team: teamId,
         amount: parseFloat(amountValue),
         timestamp: new Date().toISOString(),
       });
@@ -220,20 +223,8 @@ export default function App() {
   };
 
   const handleUpdateTeam = async (id, newName) => {
-    const trimmedNewName = newName.trim();
-    const oldTeam = teams.find(t => t.id === id);
-    const oldName = oldTeam ? oldTeam.name : null;
-
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', id), { name: trimmedNewName });
-      
-      if (oldName && oldName !== trimmedNewName) {
-        const donationsToUpdate = donations.filter(d => d.team === oldName);
-        await Promise.all(donationsToUpdate.map(d => 
-          updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'donations', d.id), { team: trimmedNewName })
-        ));
-      }
-      
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', id), { name: newName.trim() });
       setEditingTeam(null);
     } catch (err) { console.error("Update team error:", err); }
   };
@@ -241,19 +232,33 @@ export default function App() {
   const confirmDeleteTeam = async () => {
     if (!teamToDelete) return;
     try {
+      // Cascading delete for associated donations
+      const donationsToDelete = donations.filter(d => d.team === teamToDelete.id || d.team === teamToDelete.name);
+      await Promise.all(donationsToDelete.map(d => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'donations', d.id))));
+
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamToDelete.id));
       setTeamToDelete(null);
     } catch (err) { console.error("Delete team error:", err); }
   };
 
   const teamStats = useMemo(() => {
-    const stats = {};
-    teams.forEach(t => stats[t.name] = { total: 0, count: 0, items: [] });
+    const stats = { orphaned: { total: 0, count: 0, items: [] } };
+    teams.forEach(t => stats[t.id] = { total: 0, count: 0, items: [] });
     donations.forEach(d => {
-      if (stats[d.team]) {
-        stats[d.team].total += d.amount;
-        stats[d.team].count += 1;
-        stats[d.team].items.push(d);
+      let targetId = d.team;
+      if (!stats[targetId]) {
+        const matched = teams.find(t => t.name === d.team);
+        if (matched) targetId = matched.id;
+      }
+
+      if (stats[targetId]) {
+        stats[targetId].total += d.amount;
+        stats[targetId].count += 1;
+        stats[targetId].items.push(d);
+      } else {
+        stats.orphaned.total += d.amount;
+        stats.orphaned.count += 1;
+        stats.orphaned.items.push(d);
       }
     });
     return stats;
@@ -336,7 +341,7 @@ export default function App() {
                         <TeamRow 
                           key={team.id}
                           team={team}
-                          stats={teamStats[team.name] || { total: 0, count: 0, items: [] }}
+                          stats={teamStats[team.id] || { total: 0, count: 0, items: [] }}
                           onEditDonation={(item) => setEditingDonation(item)}
                           onEditTeam={() => setEditingTeam(team)}
                           onDeleteDonation={(id) => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'donations', id))}
@@ -494,7 +499,7 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
                   className="w-full bg-white/20 border-2 border-white/30 rounded-2xl px-5 py-4 appearance-none focus:border-red-900 font-bold outline-none cursor-pointer transition-colors text-white shadow-sm"
                 >
                   <option value="">Select Team</option>
-                  {teams.map(t => <option key={t.id} value={t.name} className="text-blue-950">{t.name}</option>)}
+                  {teams.map(t => <option key={t.id} value={t.id} className="text-blue-950">{t.name}</option>)}
                 </select>
                 <ChevronDown className="absolute right-5 top-5 w-5 h-5 text-slate-300 pointer-events-none" />
               </div>
@@ -721,7 +726,12 @@ function DeleteTeamModal({ teamName, onClose, onConfirm }) {
 }
 
 function DonationModal({ teams, initialData, onClose, onSave }) {
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState(() => {
+    let teamId = initialData.team;
+    const matched = teams.find(t => t.name === initialData.team);
+    if (matched) teamId = matched.id;
+    return { ...initialData, team: teamId };
+  });
   return (
     <div className="fixed inset-0 bg-blue-950/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
       <div className="bg-white p-10 rounded-[2.5rem] max-w-sm w-full relative animate-in zoom-in-95 duration-200 shadow-2xl border-2 border-white/50">
@@ -730,7 +740,7 @@ function DonationModal({ teams, initialData, onClose, onSave }) {
         <div className="space-y-6 text-left">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest ml-1 italic">Assign Team</label>
-            <select value={formData.team} onChange={e => setFormData({...formData, team: e.target.value})} className="w-full border-2 border-slate-100 p-4 rounded-xl font-bold bg-slate-50 outline-none focus:border-red-900 transition-colors cursor-pointer text-blue-950 shadow-inner">{teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}</select>
+            <select value={formData.team} onChange={e => setFormData({...formData, team: e.target.value})} className="w-full border-2 border-slate-100 p-4 rounded-xl font-bold bg-slate-50 outline-none focus:border-red-900 transition-colors cursor-pointer text-blue-950 shadow-inner">{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest ml-1 italic">Amount ($)</label>
