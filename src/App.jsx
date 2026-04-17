@@ -68,7 +68,7 @@ const firebaseConfig = isUsingPlatformConfig
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'ymca-fundraiser-final';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'donation-tracker';
 
 const DEFAULT_SETTINGS = {
   heading: "",
@@ -220,8 +220,20 @@ export default function App() {
   };
 
   const handleUpdateTeam = async (id, newName) => {
+    const trimmedNewName = newName.trim();
+    const oldTeam = teams.find(t => t.id === id);
+    const oldName = oldTeam ? oldTeam.name : null;
+
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', id), { name: newName.trim() });
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', id), { name: trimmedNewName });
+      
+      if (oldName && oldName !== trimmedNewName) {
+        const donationsToUpdate = donations.filter(d => d.team === oldName);
+        await Promise.all(donationsToUpdate.map(d => 
+          updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'donations', d.id), { team: trimmedNewName })
+        ));
+      }
+      
       setEditingTeam(null);
     } catch (err) { console.error("Update team error:", err); }
   };
@@ -770,7 +782,7 @@ function PrintView({ teams, teamStats, totalRaised, onBack }) {
           </div>
           <div className="space-y-12">
             {teams.map(team => {
-              const stats = teamStats[team.name];
+              const stats = teamStats[team.id] || { total: 0, count: 0, items: [] };
               return (
                 <div key={team.id} className="page-break">
                   <div className="flex items-baseline justify-between border-b-2 border-blue-950 pb-2 mb-4">
@@ -796,6 +808,31 @@ function PrintView({ teams, teamStats, totalRaised, onBack }) {
                 </div>
               );
             })}
+
+            {teamStats.orphaned && teamStats.orphaned.items.length > 0 && (
+              <div key="orphaned" className="page-break opacity-75">
+                <div className="flex items-baseline justify-between border-b-2 border-blue-950 pb-2 mb-4">
+                  <h2 className="text-xl font-black uppercase tracking-tight text-blue-950">Orphaned Donations (Deleted Teams)</h2>
+                  <p className="text-xl font-black text-red-900">${teamStats.orphaned.total.toLocaleString()}</p>
+                </div>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[10px] font-black text-slate-400 uppercase border-b border-slate-100">
+                      <th className="py-3 px-2">Date & Time</th>
+                      <th className="py-3 px-2 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {teamStats.orphaned.items.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).map(item => (
+                      <tr key={item.id}>
+                        <td className="py-3 px-2 text-xs font-bold">{new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td className="py-3 px-2 text-sm font-black text-right">${item.amount.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
