@@ -435,7 +435,7 @@ function DonorView({ settings, teams, onSubmit, loading, success, onReset, onCoa
           </div>
         )}
         <h1 className="text-3xl font-black tracking-tighter mb-3 leading-tight text-white drop-shadow-md">
-          {settings.heading || "YMCA Fundraiser"}
+          {settings.heading || ""}
         </h1>
         <p className="font-black text-xs px-4 text-slate-200 tracking-widest leading-relaxed opacity-90 drop-shadow-sm whitespace-pre-wrap">
           {settings.description || "Choose a team and pledge your support."}
